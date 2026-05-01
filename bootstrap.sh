@@ -48,12 +48,43 @@ link_optional_file() {
   link_file "$source" "$target"
 }
 
+repo_has_local_changes() {
+  local dir="$1"
+
+  git -C "$dir" update-index -q --refresh
+
+  ! git -C "$dir" diff --quiet --ignore-submodules -- ||
+    ! git -C "$dir" diff --cached --quiet --ignore-submodules --
+}
+
 # handle repo idempotently
 clone_or_update_repo() {
   local repo="$1"
   local dir="$2"
 
   if [ -d "$dir/.git" ]; then
+    log "Checking $dir"
+
+    if repo_has_local_changes "$dir"; then
+      cat <<EOF >&2
+
+Local changes detected in:
+
+  $dir
+
+Refusing to pull because bootstrap should not overwrite your work.
+
+Review changes with:
+
+  git -C "$dir" status
+  git -C "$dir" diff
+
+Then either commit, stash, or discard them.
+
+EOF
+      return 1
+    fi
+
     log "Updating $dir"
     git -C "$dir" pull --ff-only
   else
