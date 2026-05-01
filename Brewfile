@@ -1,0 +1,11 @@
+brew "git"
+brew "zsh"
+brew "neovim --HEAD"
+brew "node"
+brew "npm"
+brew "ripgrep"
+brew "fd"
+
+cask "kitty"
+cask "font-jetbrains-mono"
+cask "font-fira-code"
