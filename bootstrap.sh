@@ -205,6 +205,12 @@ homebrew_has_package() {
   brew list --formula "$package" >/dev/null 2>&1
 }
 
+homebrew_has_cask() {
+  local cask="$1"
+
+  brew list --cask "$cask" >/dev/null 2>&1
+}
+
 check_neovim_conflict() {
   log "Checking Neovim conflicts"
 
@@ -248,6 +254,87 @@ ensure_local_bin_on_path() {
   printf '\n%s\n' "$line" >>"$zprofile"
 }
 
+install_kitty_official() {
+  local install_dir="$HOME/.local/kitty.app"
+  local app_link="/Applications/kitty.app"
+
+  log "Installing Kitty using official installer"
+
+  curl -fsSL https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+
+  if [ ! -d "$install_dir" ]; then
+    echo "Expected Kitty install not found at $install_dir" >&2
+    return 1
+  fi
+
+  if [ -e "$app_link" ] || [ -L "$app_link" ]; then
+    if [ -L "$app_link" ]; then
+      log "Replacing existing Kitty app symlink"
+      sudo rm "$app_link"
+    else
+      cat <<EOF
+
+Kitty already exists at:
+
+  $app_link
+
+Leaving it in place.
+
+If this was installed by Homebrew, remove it with:
+
+  brew uninstall --cask kitty
+
+Then rerun this script.
+
+EOF
+      return 0
+    fi
+  fi
+
+  log "Linking Kitty into /Applications"
+  sudo ln -s "$install_dir" "$app_link"
+}
+
+ensure_line_in_file() {
+  local line="$1"
+  local file="$2"
+
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+
+  if grep -qxF "$line" "$file"; then
+    return
+  fi
+
+  printf '\n%s\n' "$line" >>"$file"
+}
+
+ensure_shell_paths() {
+  local zprofile="$DOTFILES_DIR/zsh/.zprofile"
+
+  log "Ensuring shell PATH entries"
+
+  ensure_line_in_file 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile"
+  ensure_line_in_file 'export PATH="$HOME/.local/kitty.app/bin:$PATH"' "$zprofile"
+}
+
+verify_kitty() {
+  log "Checking Kitty"
+
+  if [ ! -d "$HOME/.local/kitty.app" ]; then
+    echo "Kitty was not found at $HOME/.local/kitty.app" >&2
+    return 1
+  fi
+
+  if [ -x "$HOME/.local/kitty.app/bin/kitty" ]; then
+    "$HOME/.local/kitty.app/bin/kitty" --version
+  fi
+
+  if [ -L "/Applications/kitty.app" ]; then
+    echo "/Applications/kitty.app -> $(readlink /Applications/kitty.app)"
+  fi
+}
+
 main() {
   install_homebrew
 
@@ -262,6 +349,11 @@ main() {
   check_neovim_conflict
   install_neovim_nightly
   ensure_local_bin_on_path
+
+  check_kitty_conflict
+  install_kitty_official
+
+  ensure_shell_paths
 
   install_oh_my_zsh
   install_powerlevel10k

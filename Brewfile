@@ -12,6 +12,5 @@ brew "prettier"
 brew "black"
 brew "ruff"
 
-cask "kitty"
 cask "font-jetbrains-mono"
 cask "font-fira-code"
