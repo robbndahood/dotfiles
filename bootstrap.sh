@@ -140,6 +140,114 @@ link_configs() {
   link_file "$DOTFILES_DIR/kitty" "$HOME/.config/kitty"
 }
 
+install_neovim_nightly() {
+  local arch
+  local archive_name
+  local url
+  local install_dir="$HOME/.local/opt/nvim-nightly"
+  local bin_dir="$HOME/.local/bin"
+  local tmp_dir
+
+  case "$(uname -m)" in
+  arm64)
+    arch="arm64"
+    ;;
+  x86_64)
+    arch="x86_64"
+    ;;
+  *)
+    echo "Unsupported architecture: $(uname -m)" >&2
+    return 1
+    ;;
+  esac
+
+  archive_name="nvim-macos-${arch}.tar.gz"
+  url="https://github.com/neovim/neovim/releases/download/nightly/${archive_name}"
+
+  tmp_dir="$(mktemp -d)"
+
+  log "Installing Neovim nightly for macOS ${arch}"
+
+  curl -fL "$url" -o "$tmp_dir/$archive_name"
+
+  # Clear macOS quarantine / extended attributes when present.
+  xattr -c "$tmp_dir/$archive_name" 2>/dev/null || true
+
+  tar -xzf "$tmp_dir/$archive_name" -C "$tmp_dir"
+
+  rm -rf "$install_dir"
+  mkdir -p "$(dirname "$install_dir")"
+  mv "$tmp_dir/nvim-macos-${arch}" "$install_dir"
+
+  mkdir -p "$bin_dir"
+  ln -sfn "$install_dir/bin/nvim" "$bin_dir/nvim"
+
+  rm -rf "$tmp_dir"
+
+  log "Neovim nightly installed: $("$bin_dir/nvim" --version | head -n 1)"
+}
+
+verify_neovim() {
+  log "Checking Neovim"
+
+  if ! has nvim; then
+    echo "nvim was not found on PATH" >&2
+    return 1
+  fi
+
+  command -v nvim
+  nvim --version | head -n 1
+}
+
+homebrew_has_package() {
+  local package="$1"
+
+  brew list --formula "$package" >/dev/null 2>&1
+}
+
+check_neovim_conflict() {
+  log "Checking Neovim conflicts"
+
+  if homebrew_has_package neovim; then
+    cat <<EOF
+
+Homebrew neovim is installed.
+
+This script will still install Neovim nightly at:
+
+  $HOME/.local/opt/nvim-nightly
+
+and expose it through:
+
+  $HOME/.local/bin/nvim
+
+As long as ~/.local/bin appears before Homebrew in PATH, nightly will be used.
+
+To remove Homebrew neovim, run:
+
+  brew uninstall neovim
+
+EOF
+  fi
+}
+
+# make sure that ~/.local/bin is in the path
+ensure_local_bin_on_path() {
+  local zprofile="$DOTFILES_DIR/zsh/.zprofile"
+  local line='export PATH="$HOME/.local/bin:$PATH"'
+
+  mkdir -p "$(dirname "$zprofile")"
+  touch "$zprofile"
+
+  if grep -qxF "$line" "$zprofile"; then
+    log "~/.local/bin already configured in .zprofile"
+    return
+  fi
+
+  log "Adding ~/.local/bin to PATH in .zprofile"
+  printf '\n%s\n' "$line" >>"$zprofile"
+}
+
 main() {
   install_homebrew
 
@@ -150,10 +258,16 @@ main() {
   clone_or_update_repo "$DOTFILES_REPO" "$DOTFILES_DIR"
 
   install_packages
+
+  check_neovim_conflict
+  install_neovim_nightly
+  ensure_local_bin_on_path
+
   install_oh_my_zsh
   install_powerlevel10k
   link_configs
   set_default_shell
+  verify_neovim
 
   log "Done. Restart your terminal."
 }
