@@ -1,10 +1,17 @@
 local M = {}
 
 function M.on_attach(client, bufnr)
-  local self = M.new(client, bufnr)
+	local self = M.new(client, bufnr)
 
-  -- local opts = { noremap = true, silent = true }
-	self:map("<leader>cd", vim.diagnostic.open_float, { desc = "Line Diagnostics" })
+	-- local opts = { noremap = true, silent = true }
+	-- self:map("<leader>cd", vim.diagnostic.open_float, { desc = "Line Diagnostics" })
+	self:map("<leader>cd", function()
+		vim.diagnostic.open_float(nil, {
+			focusable = false,
+			border = "rounded",
+			source = "always",
+		})
+	end, { desc = "Line Diagnostics" })
 	-- map("n", "<leader>cd", "<cmd>lua vim.diagnostic.open_float(nil,{source=always,focusable=false,border='rounded'})<CR>", opts, "Open floating diagnostic window")
 	self:map("<leader>cl", "LspInfo", { desc = "Lsp Info" })
 	self:map("<leader>xd", "Telescope diagnostics", { desc = "Telescope Diagnostics" })
@@ -35,34 +42,32 @@ function M.on_attach(client, bufnr)
 	self:map("<leader>xW", "Telescope lsp_workspace_diagnostics", { desc = "Open workspace diagnostics in telescope" })
 	self:map("gh", "Telescope lsp_document_symbols", { desc = "Show lsp symbols in telescope" })
 
-  local format = require("user.plugins.lsp.format")
-  self:map("<leader>cf", format.format, { desc = "Format Document", has = "documentFormatting" })
+	local format = require("user.plugins.lsp.format")
+	self:map("<leader>cf", format.format, { desc = "Format Document", has = "documentFormatting" })
 	self:map("<leader>cf", format.format, { desc = "Format Range", mode = "v", has = "documentRangeFormatting" })
 	self:map("<leader>cr", M.rename, { expr = true, desc = "Rename", has = "rename" })
 	self:map("<leader>ct", format.toggle, { desc = "Toggle Auto Formatting" })
-
-
 end
 
 function M.new(client, buffer)
-  return setmetatable({client = client, buffer = buffer}, {__index = M})
+	return setmetatable({ client = client, buffer = buffer }, { __index = M })
 end
 
 function M:has(cap)
-  return self.client.server_capabilities[cap .. "Provider"]
+	return self.client.server_capabilities[cap .. "Provider"]
 end
 
 function M:map(lhs, rhs, opts)
-  opts = opts or {}
-  if opts.has and not self:has(opts.has) then
-    return
-  end
-  vim.keymap.set(
-    opts.mode or "n",
-    lhs,
-    type(rhs) == "string" and ("<cmd>%s<cr>"):format(rhs) or rhs,
-    {silent = true, buffer = self.buffer, expr = opts.expr, desc = opts.desc}
-  )
+	opts = opts or {}
+	if opts.has and not self:has(opts.has) then
+		return
+	end
+	vim.keymap.set(
+		opts.mode or "n",
+		lhs,
+		type(rhs) == "string" and ("<cmd>%s<cr>"):format(rhs) or rhs,
+		{ silent = true, buffer = self.buffer, expr = opts.expr, desc = opts.desc }
+	)
 end
 
 function M.rename()

@@ -11,6 +11,7 @@ brew "tree-sitter"
 brew "prettier"
 brew "black"
 brew "ruff"
+brew "zoxide"
 
 cask "font-jetbrains-mono"
 cask "font-fira-code"

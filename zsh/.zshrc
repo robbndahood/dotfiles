@@ -8,7 +8,13 @@ fi
 # oh my zsh
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
-plugins=(git)
+plugins=(
+  git
+  # zoxide
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+  zsh-autocomplete
+  )
 source $ZSH/oh-my-zsh.sh
 
 
@@ -45,3 +51,9 @@ kcode() {
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+#
+# Set up fzf key bindings and fuzzy completion
+source <(fzf --zsh)
+
+# zoxide
+eval "$(zoxide init zsh)"

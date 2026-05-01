@@ -65,11 +65,29 @@ local function add_desc(dopts, desc)
 end
 
 -- Plugins --
---
 -- NvimTree --
+local function map_file_explorer(bufnr)
+	pcall(vim.keymap.del, "n", "<leader>e", { buffer = bufnr })
+	pcall(vim.keymap.del, "n", "<Space>e", { buffer = bufnr })
+	vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", {
+		buffer = bufnr,
+		desc = "File [E]xplorer",
+		silent = true,
+	})
+end
+
 keymap("n", "<leader>e", function()
 	vim.cmd("NvimTreeToggle")
 end, add_desc(opts, "File [E]xplorer"))
+
+vim.api.nvim_create_autocmd("LspAttach", {
+	desc = "Restore file explorer key after LSP default mappings",
+	callback = function(args)
+		vim.schedule(function()
+			map_file_explorer(args.buf)
+		end)
+	end,
+})
 
 -- Telescope --
 keymap("n", "<leader>ff", function()
