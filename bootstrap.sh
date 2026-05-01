@@ -381,7 +381,6 @@ main() {
   install_neovim_nightly
   ensure_local_bin_on_path
 
-  check_kitty_conflict
   install_kitty_official
 
   ensure_shell_paths
