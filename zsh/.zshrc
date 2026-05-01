@@ -37,5 +37,11 @@ esac
 # aliases
 alias python='python3'
 
+kcode() {
+  open -na kitty --args \
+    --working-directory "$PWD" \
+    --session "$HOME/.config/kitty/sessions/code.session"
+}
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

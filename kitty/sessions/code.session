@@ -1,0 +1,18 @@
+# ~/.config/kitty/sessions/code.session
+
+layout splits
+
+# Left editor
+launch --cwd=current --title editor nvim
+
+# Right column
+launch --cwd=current --location=vsplit --title server
+
+# Left bottom shell
+focus_matching_window title:editor
+launch --cwd=current --location=hsplit --title shell
+
+# Right bottom logs
+focus_matching_window title:server
+launch --cwd=current --location=hsplit --title logs
+

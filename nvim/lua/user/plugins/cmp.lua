@@ -13,6 +13,7 @@ local M = {
 		"hrsh7th/cmp-cmdline",
 		"saadparwaiz1/cmp_luasnip",
 		"L3MON4D3/LuaSnip",
+		"brenoprata10/nvim-highlight-colors",
 		-- lua snip
 	},
 	version = false,
@@ -128,6 +129,7 @@ function M.opts()
 					luasnip = "[LuaSnip]",
 					buffer = "[Buf]",
 					path = "[Path]",
+					color = "[Color]",
 				})[entry.source.name]
 				return vim_item
 			end,
@@ -138,6 +140,7 @@ function M.opts()
 			{ name = "luasnip" },
 			{ name = "buffer" },
 			{ name = "path" },
+			{ name = "nvim-highlight-colors" },
 		},
 
 		confirm_opts = {
