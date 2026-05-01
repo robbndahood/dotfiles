@@ -286,44 +286,31 @@ ensure_local_bin_on_path() {
 }
 
 install_kitty_official() {
-  local install_dir="$HOME/.local/kitty.app"
-  local app_link="/Applications/kitty.app"
+  local app_dir
+
+  case "$(uname -s)" in
+  Darwin)
+    app_dir="/Applications/kitty.app"
+    ;;
+  Linux)
+    app_dir="$HOME/.local/kitty.app"
+    ;;
+  *)
+    echo "Unsupported OS for Kitty install: $(uname -s)" >&2
+    return 1
+    ;;
+  esac
 
   log "Installing Kitty using official installer"
 
-  curl -fsSL https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+  curl -fsSL https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin launch=n
 
-  if [ ! -d "$install_dir" ]; then
-    echo "Expected Kitty install not found at $install_dir" >&2
+  if [ ! -d "$app_dir" ]; then
+    echo "Expected Kitty install not found at $app_dir" >&2
     return 1
   fi
 
-  if [ -e "$app_link" ] || [ -L "$app_link" ]; then
-    if [ -L "$app_link" ]; then
-      log "Replacing existing Kitty app symlink"
-      sudo rm "$app_link"
-    else
-      cat <<EOF
-
-Kitty already exists at:
-
-  $app_link
-
-Leaving it in place.
-
-If this was installed by Homebrew, remove it with:
-
-  brew uninstall --cask kitty
-
-Then rerun this script.
-
-EOF
-      return 0
-    fi
-  fi
-
-  log "Linking Kitty into /Applications"
-  sudo ln -s "$install_dir" "$app_link"
+  log "Kitty installed at $app_dir"
 }
 
 ensure_line_in_file() {
@@ -347,6 +334,24 @@ ensure_shell_paths() {
 
   ensure_line_in_file 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile"
   ensure_line_in_file 'export PATH="$HOME/.local/kitty.app/bin:$PATH"' "$zprofile"
+}
+
+link_kitty_cli() {
+  local bin_dir="$HOME/.local/bin"
+  local app_dir="/Applications/kitty.app"
+
+  if [ ! -x "$app_dir/Contents/MacOS/kitty" ]; then
+    echo "Kitty binary not found at $app_dir/Contents/MacOS/kitty" >&2
+    return 1
+  fi
+
+  mkdir -p "$bin_dir"
+
+  ln -sfn "$app_dir/Contents/MacOS/kitty" "$bin_dir/kitty"
+
+  if [ -x "$app_dir/Contents/MacOS/kitten" ]; then
+    ln -sfn "$app_dir/Contents/MacOS/kitten" "$bin_dir/kitten"
+  fi
 }
 
 verify_kitty() {
@@ -382,6 +387,7 @@ main() {
   ensure_local_bin_on_path
 
   install_kitty_official
+  link_kitty_cli
 
   ensure_shell_paths
 
