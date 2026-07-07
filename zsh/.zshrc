@@ -17,7 +17,16 @@ plugins=(
   )
 source $ZSH/oh-my-zsh.sh
 
+## Path
+export PATH="$HOME/.cargo/bin":$PATH
 
+# go binary
+export PATH="$PATH:/usr/local/go/bin"
+
+# set nvim as editor
+export EDITOR="nvim"
+export VISUAL="nvim"
+export SUDO_EDITOR="nvim"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && start_nvm() {
@@ -40,6 +49,8 @@ case ":$PATH:" in
 esac
 # pnpm end
 
+# uv
+eval "$(uv generate-shell-completion zsh)"
 # aliases
 alias python='python3'
 
@@ -57,3 +68,4 @@ source <(fzf --zsh)
 
 # zoxide
 eval "$(zoxide init zsh)"
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
