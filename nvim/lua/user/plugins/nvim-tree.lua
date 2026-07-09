@@ -126,10 +126,6 @@ M.opts = {
 	-- 	"dashboard",
 	-- 	"alpha",
 	-- },
-	system_open = {
-		cmd = nil,
-		args = {},
-	},
 	diagnostics = {
 		enable = true,
 		icons = {

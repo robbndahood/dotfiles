@@ -43,6 +43,7 @@ local options = {
 	scrolloff = 8,
 	sidescrolloff = 8,
 	termguicolors = true,
+	winborder = "rounded",                        -- global float border (replaces removed vim.lsp.with(..., {border=...}))
 }
 
 for k, v in pairs(options) do

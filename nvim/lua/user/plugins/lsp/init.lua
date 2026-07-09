@@ -297,6 +297,7 @@ local M = {
 			ensure_installed = {
 				"stylua",
 				"shfmt",
+				"revive", -- Go linter used by null-ls (nls.builtins.diagnostics.revive)
 				-- "flake8",
 			},
 		},

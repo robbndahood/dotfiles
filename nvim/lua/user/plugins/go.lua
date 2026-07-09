@@ -13,16 +13,10 @@ return {
 		"nvim-treesitter/nvim-treesitter",
 	},
 	config = function()
+		-- vim.lsp.with() and vim.lsp.handlers.* overrides were removed in Nvim 0.11+.
+		-- Float borders now come from the global `winborder` option (see options.lua).
 		require("go").setup({
-			lsp_cfg = {
-				handlers = {
-					["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, { border = "double" }),
-					["textDocument/signatureHelp"] = vim.lsp.with(
-						vim.lsp.handlers.signature_help,
-						{ border = "round" }
-					),
-				},
-			},
+			lsp_cfg = true,
 		})
 	end,
 	event = { "CmdlineEnter" },
