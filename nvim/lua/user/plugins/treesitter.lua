@@ -78,6 +78,19 @@ M.config = function(_, opts)
 	vim.keymap.set({ "x", "o" }, "ic", function()
 		sel.select_textobject("@class.inner", "textobjects")
 	end, { desc = "Select inner class" })
+
+	-- The nvim-treesitter `main` branch no longer auto-enables highlighting
+	-- (the old `configs.setup({ highlight = { enable = true } })` is gone), so
+	-- start the highlighter ourselves per buffer. Without this we fall back to
+	-- basic regex `:syntax`, which is why the colorscheme looked washed out.
+	vim.api.nvim_create_autocmd("FileType", {
+		callback = function(args)
+			local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
+			if lang and pcall(vim.treesitter.language.add, lang) then
+				pcall(vim.treesitter.start, args.buf, lang)
+			end
+		end,
+	})
 end
 
 return M
