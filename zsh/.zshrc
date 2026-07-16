@@ -23,19 +23,29 @@ ZSH_COMPDUMP="$HOME/.cache/zsh/zcompdump-${ZSH_VERSION}"
 plugins=(
   git
   zsh-autosuggestions
+  zsh-autocomplete
   )
 # NOTE: zsh-syntax-highlighting is intentionally NOT listed here. It must be
 # sourced last, after every other ZLE plugin — see the bottom of this file.
-# zsh-autocomplete was removed: it recomputed completions on every keystroke
-# and was the cause of command-line input lag.
+# zsh-autocomplete provides the live as-you-type completion menu; it's tuned
+# (debounced) below so it doesn't recompute on every keystroke (the lag cause).
 
 # zsh-autosuggestions tuning — must be set BEFORE omz sources the plugin.
 # Async is already on by default (zsh >= 5.0.8); set explicitly for clarity.
-# MANUAL_REBIND stops the per-prompt widget rebind (the main perf win);
 # BUFFER_MAX_SIZE skips suggestion work on long lines (e.g. pasted text).
+# NOTE: we don't set ZSH_AUTOSUGGEST_MANUAL_REBIND here — zsh-autocomplete
+# manages the autosuggestions/ZLE widget integration itself (on load it sets
+# MANUAL_REBIND=1 and ZSH_AUTOSUGGEST_IGNORE_WIDGETS), so setting it is redundant.
 ZSH_AUTOSUGGEST_USE_ASYNC=1
-ZSH_AUTOSUGGEST_MANUAL_REBIND=1
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=100
+
+# zsh-autocomplete tuning (loaded via plugins= above). These zstyles debounce it
+# so it doesn't recompute completions on every keystroke — that was the lag.
+# Tune delay/min-input to taste; higher delay = calmer, lower = snappier menu.
+zstyle ':autocomplete:*' delay 0.25   # wait 0.25s after a keypress before computing completions
+zstyle ':autocomplete:*' min-input 2  # no menu until 2+ chars typed
+zstyle ':autocomplete:*' timeout 1.0  # cap each completion so a slow one can't hang the line
+zstyle '*:compinit' arguments -C      # reuse our cached compdump instead of re-scanning fpath
 source $ZSH/oh-my-zsh.sh
 
 ## Path
