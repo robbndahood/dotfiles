@@ -45,6 +45,7 @@ function M.setup()
 	local safe_require = require("user.utils").safe_require
 	local is_vscode = require("user.utils").is_vscode()
 	safe_require("user.config.options")
+	safe_require("user.config.filetypes")
 	if not is_vscode then
 		safe_require("user.config.keymaps")
 	end

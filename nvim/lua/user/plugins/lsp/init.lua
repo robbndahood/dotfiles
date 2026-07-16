@@ -51,27 +51,21 @@ local M = {
 			format_notify = true,
 			setup = {},
 			servers = {
+				-- NOTE: under mason-lspconfig v2 every INSTALLED server is
+				-- auto-enabled via vim.lsp.enable() and this file's classic
+				-- per-server `setup` handler is ignored. So this table only drives
+				-- ensure_installed; per-server *options* must be registered with
+				-- vim.lsp.config() in config() below to actually reach the server.
 				jsonls = {},
-				pyright = {},
-				lua_ls = {
-					settings = {
-						Lua = {
-							telemetry = {
-								enable = false,
-							},
-							workspace = {
-								checkThirdParty = false,
-							},
-							completion = {
-								callSnippet = "Replace",
-							},
-						},
-					},
-				},
+				pyright = {}, -- options in config() below (venv + disableOrganizeImports)
+				ruff = {}, -- options in config() below (hover off, organize imports)
+				lua_ls = {}, -- options in config() below
+				ansiblels = {}, -- Ansible YAML (yaml.ansible filetype; see config/filetypes.lua)
+				docker_language_server = {}, -- unified Docker LSP: Dockerfile + compose + bake
+				marksman = {}, -- Markdown
 				clangd = {},
 				bashls = {},
 				yamlls = {},
-				dockerls = {},
 				html = {},
 				sqlls = {},
 				taplo = {},
@@ -88,6 +82,85 @@ local M = {
 			}
 			local Util = require("user.utils")
 			require("user.plugins.lsp.format").setup(opts)
+
+			-- lua_ls: settings must be registered via vim.lsp.config too (same
+			-- mason-lspconfig v2 reason as pyright/ruff below).
+			vim.lsp.config("lua_ls", {
+				settings = {
+					Lua = {
+						telemetry = { enable = false },
+						workspace = { checkThirdParty = false },
+						completion = { callSnippet = "Replace" },
+					},
+				},
+			})
+
+			-- Python: ruff (lint + format + imports) alongside pyright (types).
+			-- mason-lspconfig v2 enables servers with vim.lsp.enable(), which reads
+			-- vim.lsp.config(); the classic per-server setup handler is ignored, so
+			-- these options MUST be registered here to actually reach the servers.
+			vim.lsp.config("pyright", {
+				settings = {
+					pyright = {
+						-- Let ruff organize imports instead of pyright.
+						disableOrganizeImports = true,
+					},
+				},
+				before_init = function(_, config)
+					-- Point pyright at the project's own .venv so it resolves
+					-- locally-installed packages (yoshi, yoshi_tests, ...). Without
+					-- this pyright uses the global python on PATH, which has none of
+					-- them. root_dir resolves to the project root via lspconfig's
+					-- markers (pyproject.toml/.git), so each project gets its own venv.
+					local root = config.root_dir
+					if root then
+						local venv_py = root .. "/.venv/bin/python"
+						if vim.uv.fs_stat(venv_py) then
+							config.settings = config.settings or {}
+							config.settings.python = config.settings.python or {}
+							config.settings.python.pythonPath = venv_py
+						end
+					end
+				end,
+			})
+			vim.lsp.config("ruff", {
+				on_attach = function(client, bufnr)
+					-- pyright owns hover; ruff's hover is intentionally minimal.
+					client.server_capabilities.hoverProvider = false
+
+					-- Organize imports on save (ruff's formatter does not reorder
+					-- imports). Guarded by the autoformat toggle (<leader>ct) and
+					-- pcall-wrapped so an LSP API change can never hard-error on write.
+					vim.api.nvim_create_autocmd("BufWritePre", {
+						group = vim.api.nvim_create_augroup("RuffOrganizeImports." .. bufnr, { clear = true }),
+						buffer = bufnr,
+						callback = function()
+							if not require("user.plugins.lsp.format").autoformat then
+								return
+							end
+							pcall(function()
+								local enc = client.offset_encoding
+								local params = vim.lsp.util.make_range_params(0, enc)
+								params.context = { only = { "source.organizeImports.ruff" }, diagnostics = {} }
+								local resp = client:request_sync("textDocument/codeAction", params, 1000, bufnr)
+								for _, action in pairs((resp and resp.result) or {}) do
+									-- ruff returns organizeImports lazily (no inline
+									-- edit), so resolve it before applying.
+									if not action.edit and action.data then
+										local r = client:request_sync("codeAction/resolve", action, 1000, bufnr)
+										action = (r and r.result) or action
+									end
+									if action.edit then
+										vim.lsp.util.apply_workspace_edit(action.edit, enc)
+									elseif type(action.command) == "table" then
+										client:exec_cmd(action.command, { bufnr = bufnr })
+									end
+								end
+							end)
+						end,
+					})
+				end,
+			})
 
 			-- setup formatting and keymaps
 			Util.on_attach(function(client, buffer)
@@ -257,7 +330,10 @@ local M = {
 						extra_args = { "--no-semi", "--single-quote", "--jsx-single-quote" },
 					}),
 
-					nls.builtins.formatting.black.with({ extra_args = { "--fast" }, prefer_local = true }),
+					-- Python formatting is handled by ruff's LSP (see the `ruff`
+					-- server config above). Black is intentionally not a null-ls
+					-- source: format.lua prefers null-ls formatters, so keeping
+					-- black here would shadow ruff's formatter for Python.
 					nls.builtins.formatting.stylua,
 					nls.builtins.completion.luasnip,
 					nls.builtins.code_actions.gitsigns,
