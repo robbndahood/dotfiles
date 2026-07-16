@@ -13,7 +13,11 @@ M.opts = {
     theme = "oceanicnext", -- per-mode accent theme shipped with the fork (falls back to "auto")
     component_separators = { left = "", right = "" },
     section_separators = { left = "", right = "" },
-    disabled_filetypes = { "NvimTree" },
+    -- Don't disable the bar in NvimTree: with globalstatus there's a single
+    -- full-width statusline, so disabling it here blanks the whole bar whenever
+    -- the tree is focused. The `nvim-tree` extension (below) renders the cwd for
+    -- that window instead, keeping the bar present and consistent.
+    disabled_filetypes = {},
     always_divide_middle = true,
     globalstatus = true,
   },
