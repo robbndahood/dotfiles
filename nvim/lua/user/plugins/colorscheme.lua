@@ -1,55 +1,31 @@
+-- Oceanic Next — loaded from the local fork while it's under active development.
+-- TODO: once the Lua rewrite is pushed, switch `dir = ...` back to
+--   "robbndahood/oceanic-next" (a normal remote plugin spec) so it installs like
+--   any other plugin instead of pointing at this working copy.
 local M = {
-	"mhartington/oceanic-next",
+	dir = "/Users/robert.leon/code/repos/github.com/robbndahood/oceanic-next",
+	name = "oceanic-next",
 	cond = function()
 		return not require("user.utils").is_vscode()
 	end,
 	priority = 1000,
 	lazy = false,
-	init = function()
-		vim.g.oceanic_next_terminal_italic = 1
-		vim.g.oceanic_next_terminal_bold = 1
-	end,
 }
 
-M.name = "OceanicNext"
-
+-- The fork is now a proper Lua colorscheme with native `@*` treesitter and
+-- `@lsp.*` semantic-token support, so the old `fix_treesitter_highlights`
+-- monkeypatch is gone. Tweak colors here via setup() hooks instead.
 function M.config()
-	vim.cmd.colorscheme(M.name)
-	vim.api.nvim_set_hl(0, "EndOfBuffer", { fg = "bg", ctermfg = 0 })
+	require("oceanic-next").setup({
+		-- style = nil            -- follow &background (dark by default)
+		transparent = false,
+		styles = {
+			comments = { italic = true },
+			keywords = { italic = false },
+		},
+		rainbow_headings = true, -- markdown h1..h6 across the accent palette
+	})
+	vim.cmd.colorscheme("OceanicNext")
 end
 
 return M
-
--- vim.cmd([[
--- try
---   let g:oceanic_next_terminal_bold = 1
---   let g:oceanic_next_terminal_italic = 1
---   colorscheme OceanicNext
---   hi EndOfBuffer guifg=bg ctermfg=0
--- catch /^Vim\%((\a\+)\)\=:E185/
---   colorscheme default
---   set background=dark
--- endtry
--- ]])
-
--- loca
---
--- M.setup = function()
--- 	if vim.fn.exists("syntax_on") then
--- 		vim.cmd("syntax reset")
--- 	end
--- 	vim.o.termguicolors = true
---   vim.g.oceanic_next_terminal_bold = 1
---   vim.g.oceanic_next_terminal_italic = 1
--- 	set_namespace(namespace)
--- end
---
--- return M
--- nvim_set_hl(0, "EndOfBuffer", {'ctermfg': 0, 'fg'=bg})
---
--- local colorscheme = "OceanicNext"
--- local status_ok, _ = pcall(vim.cmd, "colorscheme " .. colorscheme)
--- if not status_ok then
---  vim.notify("colorscheme " .. colorscheme .. " not found!")
---  return
--- end

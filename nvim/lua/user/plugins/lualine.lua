@@ -10,7 +10,7 @@ local M = {
 M.opts = {
   options = {
     icons_enabled = true,
-    theme = "auto",
+    theme = "oceanicnext", -- per-mode accent theme shipped with the fork (falls back to "auto")
     component_separators = { left = "", right = "" },
     section_separators = { left = "", right = "" },
     disabled_filetypes = { "NvimTree" },
