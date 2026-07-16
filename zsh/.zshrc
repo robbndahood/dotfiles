@@ -14,6 +14,12 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 ZSH_DISABLE_COMPFIX="true"
 zstyle ':omz:update' mode disabled
 
+# Pin the completion dump to a stable, hostname-independent path. omz's default
+# embeds $SHORT_HOST, and macOS intermittently flips this machine's hostname
+# between "Roberts-MacBook-Pro" and "...-2", which changed the dump filename
+# every session and forced a full compinit rebuild each start.
+ZSH_COMPDUMP="$HOME/.cache/zsh/zcompdump-${ZSH_VERSION}"
+
 plugins=(
   git
   zsh-autosuggestions
@@ -22,6 +28,14 @@ plugins=(
 # sourced last, after every other ZLE plugin — see the bottom of this file.
 # zsh-autocomplete was removed: it recomputed completions on every keystroke
 # and was the cause of command-line input lag.
+
+# zsh-autosuggestions tuning — must be set BEFORE omz sources the plugin.
+# Async is already on by default (zsh >= 5.0.8); set explicitly for clarity.
+# MANUAL_REBIND stops the per-prompt widget rebind (the main perf win);
+# BUFFER_MAX_SIZE skips suggestion work on long lines (e.g. pasted text).
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=100
 source $ZSH/oh-my-zsh.sh
 
 ## Path
@@ -85,4 +99,3 @@ source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # 1password ssh
 export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-
