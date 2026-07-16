@@ -51,6 +51,7 @@ esac
 
 # uv
 eval "$(uv generate-shell-completion zsh)"
+
 # aliases
 alias python='python3'
 
@@ -69,3 +70,10 @@ source <(fzf --zsh)
 # zoxide
 eval "$(zoxide init zsh)"
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# source secrets
+[[ -f ~/.config/zsh/secrets.zsh ]] && source ~/.config/zsh/secrets.zsh
+
+# 1password ssh
+export SSH_AUTH_SOCK="~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+
