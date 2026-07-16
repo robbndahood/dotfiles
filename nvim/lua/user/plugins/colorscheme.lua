@@ -19,6 +19,7 @@ function M.config()
 	require("oceanic-next").setup({
 		-- style = nil            -- follow &background (dark by default)
 		transparent = false,
+		borders = true, -- frame telescope panes + brighten the nvim-tree edge (false = borderless)
 		styles = {
 			comments = { italic = true },
 			keywords = { italic = false },
