@@ -57,6 +57,52 @@ local function content_looks_ansible(bufnr)
 	return false
 end
 
+-- The `.rules` extension is overloaded: polkit rules are JavaScript, udev rules
+-- have their own `udevrules` syntax, and Neovim's built-in default sends
+-- everything else to `hog` (the Snort filetype). Filenames are no help -- polkit
+-- rules are routinely named things like `50-udev-eth-shell.rules` after the
+-- program they authorize -- and repo/Ansible copies live outside the system
+-- rules.d dirs, so classify by content first and fall back to the path.
+local function detect_rules(path, bufnr)
+	if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+		for _, line in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, 40, false)) do
+			-- Polkit rules read as JS: polkit.addRule(...), polkit.Result, and
+			-- action/subject objects.
+			if line:find("polkit%.") or line:find("action%.id") or line:find("subject%.") then
+				return "javascript"
+			end
+			-- Udev rules are KEY==/KEY+= match-and-assign lines.
+			if
+				line:find("SUBSYSTEMS?==")
+				or line:find("KERNELS?==")
+				or line:find("ACTION==")
+				or line:find("DRIVERS?==")
+				or line:find("ATTRS?{")
+				or line:find("ENV{")
+				or line:find("TAG%+=")
+				or line:find("RUN%+=")
+				or line:find("SYMLINK%+=")
+				or line:find("GOTO=")
+				or line:find("LABEL=")
+			then
+				return "udevrules"
+			end
+		end
+	end
+
+	-- Empty or ambiguous file: guess from the directory it lives in.
+	local p = path:lower()
+	if p:find("polkit") then
+		return "javascript"
+	end
+	if p:find("/udev/") or p:find("udev/rules%.d/") then
+		return "udevrules"
+	end
+
+	-- Nothing matched -- keep Neovim's default.
+	return "hog"
+end
+
 vim.filetype.add({
 	-- Compose files -> `yaml.docker-compose` so docker_language_server attaches.
 	-- Neovim does not detect these on its own. Exact filenames beat patterns.
@@ -65,6 +111,11 @@ vim.filetype.add({
 		["docker-compose.yaml"] = "yaml.docker-compose",
 		["compose.yml"] = "yaml.docker-compose",
 		["compose.yaml"] = "yaml.docker-compose",
+	},
+	-- Classify `.rules` files (polkit -> javascript, udev -> udevrules, else
+	-- hog). A user extension entry overrides Neovim's built-in `.rules` handler.
+	extension = {
+		rules = detect_rules,
 	},
 	pattern = {
 		-- Variants like docker-compose.prod.yml / compose.override.yaml. Higher
