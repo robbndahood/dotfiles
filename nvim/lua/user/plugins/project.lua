@@ -70,6 +70,26 @@ M.opts = {
 M.config = function(_, opts)
   require("project").setup(opts)
   require("telescope").load_extension("projects")
+
+  -- Work around a project.nvim race. The history file is one global JSON shared
+  -- by every nvim instance, and write_history() truncates-then-writes it
+  -- non-atomically. A second instance reading in that window sees an empty file
+  -- and write_history raises "Unable to decode JSON data!" -- either out of a
+  -- vim.schedule callback or synchronously in the BufEnter autocmd chain.
+  -- read_history already tolerates this; only write_history re-raises. Swallow
+  -- that one transient error and retry once; re-raise anything else.
+  local history = require("project.util.history")
+  local orig_write = history.write_history
+  history.write_history = function(path)
+    local ok, err = pcall(orig_write, path)
+    if not ok then
+      if type(err) == "string" and err:find("decode JSON", 1, true) then
+        vim.defer_fn(function() pcall(orig_write, path) end, 50)
+      else
+        error(err)
+      end
+    end
+  end
 end
 
 return M
