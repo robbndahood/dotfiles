@@ -10,7 +10,18 @@ local M = {
 		lazy = true,
 		dependencies = {
 			-- { "folke/neoconf.nvim", cmd = "Neoconf", config = true },
-			{ "folke/neodev.nvim", opts = {} },
+			-- Feeds lua_ls the Neovim runtime + plugin type defs. Replaces the
+			-- deprecated neodev.nvim, which hooked lspconfig's per-server setup —
+			-- a path mason-lspconfig v2 no longer takes (it uses vim.lsp.enable).
+			{
+				"folke/lazydev.nvim",
+				ft = "lua",
+				opts = {
+					library = {
+						{ path = "${3rd}/luv/library", words = { "vim%.uv" } },
+					},
+				},
+			},
 			{ "williamboman/mason.nvim" },
 			{ "williamboman/mason-lspconfig.nvim" },
 			{ "hrsh7th/cmp-nvim-lsp" },
