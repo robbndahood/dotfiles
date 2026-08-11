@@ -103,5 +103,11 @@ keymap("n", "<leader>fh", function()
 	vim.cmd("Telescope help_tags")
 end, add_desc(opts, "[F]ind [H]elp Tags"))
 
+-- Markdown preview --
+-- Opens the current file in mdfried in a kitty split beside nvim.
+keymap("n", "<leader>tm", function()
+	require("user.utils.markdown_preview").toggle()
+end, add_desc(opts, "[T]oggle [M]arkdown Preview"))
+
 -- ToggleTerm --
 -- keymap("n", "<leader>tg", ":ToggleTerm help_tags<CR>", add_desc(opts, "Find Help Tags"))

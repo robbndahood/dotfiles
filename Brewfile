@@ -12,6 +12,7 @@ brew "prettier"
 brew "black"
 brew "ruff"
 brew "zoxide"
+brew "mdfried"
 
 cask "font-jetbrains-mono"
 cask "font-fira-code"
