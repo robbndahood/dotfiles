@@ -121,19 +121,27 @@ local M = {
 					},
 				},
 				before_init = function(_, config)
-					-- Point pyright at the project's own .venv so it resolves
-					-- locally-installed packages (yoshi, yoshi_tests, ...). Without
-					-- this pyright uses the global python on PATH, which has none of
-					-- them. root_dir resolves to the project root via lspconfig's
-					-- markers (pyproject.toml/.git), so each project gets its own venv.
-					local root = config.root_dir
-					if root then
-						local venv_py = root .. "/.venv/bin/python"
+					-- Point pyright at the project's .venv so it resolves locally-installed
+					-- packages (yoshi, yoshi_tests, ...). Without this pyright uses the
+					-- global python on PATH, which has none of them. Search upward from
+					-- root_dir: in a uv workspace root_dir lands on the member (its own
+					-- pyproject.toml is the nearest root marker) while the one shared .venv
+					-- sits at the workspace root above it. Stop at the repo root so an
+					-- unrelated .venv in a parent directory is never picked up.
+					local dir = config.root_dir
+					while dir do
+						local venv_py = dir .. "/.venv/bin/python"
 						if vim.uv.fs_stat(venv_py) then
 							config.settings = config.settings or {}
 							config.settings.python = config.settings.python or {}
 							config.settings.python.pythonPath = venv_py
+							return
 						end
+						if vim.uv.fs_stat(dir .. "/.git") then
+							return
+						end
+						local parent = vim.fs.dirname(dir)
+						dir = parent ~= dir and parent or nil
 					end
 				end,
 			})
