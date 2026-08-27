@@ -120,6 +120,45 @@ local M = {
 						disableOrganizeImports = true,
 					},
 				},
+				-- Root pyright at the uv *workspace* root, not the member package.
+				-- lspconfig's root_markers pick the nearest pyproject.toml, which in a
+				-- uv workspace is the member (packages/yoshi-tests). Pyright only
+				-- indexes its root, so sibling members reachable via a .pth are treated
+				-- as libraries: imports and go-to-definition work, but workspace symbol
+				-- search and find-references silently miss everything in packages/yoshi.
+				root_dir = function(bufnr, on_dir)
+					local markers = {
+						"pyrightconfig.json",
+						"pyproject.toml",
+						"setup.py",
+						"setup.cfg",
+						"requirements.txt",
+						"Pipfile",
+						".git",
+					}
+					local nearest = vim.fs.root(bufnr, markers)
+					if not nearest then
+						return on_dir(nil)
+					end
+					-- Walk up for the outermost pyproject.toml declaring the workspace.
+					-- Stop at the repo root so an unrelated parent is never picked up.
+					local workspace, dir = nil, nearest
+					while dir do
+						local pyproject = dir .. "/pyproject.toml"
+						if vim.uv.fs_stat(pyproject) then
+							local ok, lines = pcall(vim.fn.readfile, pyproject)
+							if ok and table.concat(lines, "\n"):find("%[tool%.uv%.workspace%]") then
+								workspace = dir
+							end
+						end
+						if vim.uv.fs_stat(dir .. "/.git") then
+							break
+						end
+						local parent = vim.fs.dirname(dir)
+						dir = parent ~= dir and parent or nil
+					end
+					on_dir(workspace or nearest)
+				end,
 				before_init = function(_, config)
 					-- Point pyright at the project's .venv so it resolves locally-installed
 					-- packages (yoshi, yoshi_tests, ...). Without this pyright uses the
