@@ -23,12 +23,16 @@ ZSH_COMPDUMP="$HOME/.cache/zsh/zcompdump-${ZSH_VERSION}"
 plugins=(
   git
   zsh-autosuggestions
-  zsh-autocomplete
   )
 # NOTE: zsh-syntax-highlighting is intentionally NOT listed here. It must be
 # sourced last, after every other ZLE plugin — see the bottom of this file.
-# zsh-autocomplete provides the live as-you-type completion menu; it's tuned
-# (debounced) below so it doesn't recompute on every keystroke (the lag cause).
+# NOTE: zsh-autocomplete is intentionally NOT listed here either. omz adds a
+# plugin's top-level dir to fpath and runs compinit *before* it sources the
+# plugin file, but zsh-autocomplete keeps its completers in a Completions/
+# subdir that only lands on fpath when the plugin file runs. Listed here, that
+# dir always misses the compinit scan and every keystroke errors with
+# "command not found: _autocomplete__unambiguous". It's sourced by hand below,
+# ahead of oh-my-zsh.sh, so the dir is on fpath before compinit.
 
 # zsh-autosuggestions tuning — must be set BEFORE omz sources the plugin.
 # Async is already on by default (zsh >= 5.0.8); set explicitly for clarity.
@@ -45,7 +49,23 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=100
 zstyle ':autocomplete:*' delay 0.25   # wait 0.25s after a keypress before computing completions
 zstyle ':autocomplete:*' min-input 2  # no menu until 2+ chars typed
 zstyle ':autocomplete:*' timeout 1.0  # cap each completion so a slow one can't hang the line
-zstyle '*:compinit' arguments -C      # reuse our cached compdump instead of re-scanning fpath
+# Don't add `zstyle '*:compinit' arguments -C` here. Only zsh-autocomplete reads
+# that style (omz hardcodes its own compinit flags), and -C tells compinit to
+# trust the cached dump instead of re-scanning fpath — that scan is what picks
+# up Completions/, so -C reintroduces the "command not found" errors above.
+
+# Load zsh-autocomplete before oh-my-zsh.sh, per its install notes: it puts its
+# Completions/ dir on fpath, and omz runs compinit as soon as it's sourced.
+# Going first also keeps it ahead of zsh-autosuggestions, which it expects — on
+# load it sets MANUAL_REBIND and ZSH_AUTOSUGGEST_IGNORE_WIDGETS for it.
+for _zsh_ac in \
+  "${ZSH_CUSTOM:-$ZSH/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh" \
+  /opt/homebrew/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh \
+  /usr/share/zsh/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh; do
+  [[ -f "$_zsh_ac" ]] && source "$_zsh_ac" && break
+done
+unset _zsh_ac
+
 source $ZSH/oh-my-zsh.sh
 
 ## Path

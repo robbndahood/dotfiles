@@ -4,6 +4,12 @@
 # site-functions twice).
 typeset -U path fpath PATH FPATH
 
+# Ubuntu's /etc/zsh/zshrc runs its own `compinit` before ~/.zshrc is read, so a
+# dump gets built before zsh-autocomplete can put its Completions/ dir on fpath.
+# zsh-autocomplete's install notes call for this on Ubuntu specifically; macOS
+# ships no global compinit, which is why this only bites on Linux.
+skip_global_compinit=1
+
 if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 elif [[ -x /usr/local/bin/brew ]]; then
