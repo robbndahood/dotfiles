@@ -383,40 +383,53 @@ local M = {
 		event = { "BufReadPre", "BufNewFile" },
 		opts = function()
 			local nls = require("null-ls")
-			return {
-				root_dir = require("null-ls.utils").root_pattern(".null-ls-root", ".git", "pyproject.toml"),
-				sources = {
-					nls.builtins.formatting.prettier.with({
-						extra_filetypes = { "toml" },
-						extra_args = { "--no-semi", "--single-quote", "--jsx-single-quote" },
-					}),
+			local sources = {
+				nls.builtins.formatting.prettier.with({
+					extra_filetypes = { "toml" },
+					extra_args = { "--no-semi", "--single-quote", "--jsx-single-quote" },
+				}),
 
-					-- Python formatting is handled by ruff's LSP (see the `ruff`
-					-- server config above). Black is intentionally not a null-ls
-					-- source: format.lua prefers null-ls formatters, so keeping
-					-- black here would shadow ruff's formatter for Python.
-					nls.builtins.formatting.stylua,
-					nls.builtins.completion.luasnip,
-					nls.builtins.code_actions.gitsigns,
-					nls.builtins.diagnostics.revive,
+				-- Python formatting is handled by ruff's LSP (see the `ruff`
+				-- server config above). Black is intentionally not a null-ls
+				-- source: format.lua prefers null-ls formatters, so keeping
+				-- black here would shadow ruff's formatter for Python.
+				nls.builtins.formatting.stylua,
+				nls.builtins.completion.luasnip,
+				nls.builtins.code_actions.gitsigns,
+			}
+
+			-- revive and golines are Go binaries. Registering them without a
+			-- toolchain leaves null-ls spawning commands that don't exist.
+			if vim.fn.executable("go") == 1 then
+				table.insert(sources, nls.builtins.diagnostics.revive)
+				table.insert(
+					sources,
 					nls.builtins.formatting.golines.with({
 						extra_args = {
 							"--max-len=180",
 							"--base-formatter=gofumpt",
 						},
-					}),
-				},
+					})
+				)
+			end
+
+			return {
+				root_dir = require("null-ls.utils").root_pattern(".null-ls-root", ".git", "pyproject.toml"),
+				sources = sources,
 			}
 		end,
 		config = function(plugin, _)
 			local nls = require("null-ls")
 			local sources = plugin.opts().sources
-			local gotest = require("go.null_ls").gotest()
-			local gotest_codeaction = require("go.null_ls").gotest_action()
-			local golangci_lint = require("go.null_ls").golangci_lint()
-			table.insert(sources, gotest)
-			table.insert(sources, golangci_lint)
-			table.insert(sources, gotest_codeaction)
+			-- go.nvim is gated on the same check (see plugins/go.lua). Requiring
+			-- go.null_ls unconditionally pulled in go.install, which errors with
+			-- "'go' is not executable" and took down every `:` command.
+			if vim.fn.executable("go") == 1 then
+				local go_nls = require("go.null_ls")
+				table.insert(sources, go_nls.gotest())
+				table.insert(sources, go_nls.golangci_lint())
+				table.insert(sources, go_nls.gotest_action())
+			end
 			nls.setup({ sources = sources, debounce = 1000, default_timeout = 5000 })
 		end,
 	},
@@ -430,14 +443,19 @@ local M = {
 		end,
 		cmd = "Mason",
 		keys = { { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" } },
-		opts = {
-			ensure_installed = {
+		opts = function()
+			local ensure_installed = {
 				"stylua",
 				"shfmt",
-				"revive", -- Go linter used by null-ls (nls.builtins.diagnostics.revive)
 				-- "flake8",
-			},
-		},
+			}
+			-- Mason builds revive from source, so it needs a Go toolchain. Asking
+			-- for it without one just fails the install on every startup.
+			if vim.fn.executable("go") == 1 then
+				table.insert(ensure_installed, "revive") -- used by nls.builtins.diagnostics.revive
+			end
+			return { ensure_installed = ensure_installed }
+		end,
 		---@param opts MasonSettings | {ensure_installed: string[]}
 		config = function(_, opts)
 			require("mason").setup(opts)

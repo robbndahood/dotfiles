@@ -1,8 +1,11 @@
 -- golang
 return {
 	"ray-x/go.nvim",
+	-- Gated on the toolchain: go.nvim loads on CmdlineEnter, and its setup()
+	-- runs go.install, which aborts with "'go' is not executable" when there's
+	-- no Go. That broke every `:` command on a machine without it.
 	cond = function()
-		return not require("user.utils").is_vscode()
+		return not require("user.utils").is_vscode() and vim.fn.executable("go") == 1
 	end,
 	dependencies = {
 		"mfussenegger/nvim-dap", -- Debug Adapter Protocol
