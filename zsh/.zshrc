@@ -71,8 +71,14 @@ source $ZSH/oh-my-zsh.sh
 ## Path
 export PATH="$HOME/.cargo/bin":$PATH
 
-# go binary
-export PATH="$PATH:/usr/local/go/bin"
+# go toolchain. Prefer the copy under ~/.local/go: it installs from the official
+# tarball without root, so a new machine needs no sudo to get Go. /usr/local/go
+# is the fallback for machines where it went to the system location instead.
+# GOPATH stays the default ~/go, whose bin is already on PATH from .zshenv.
+for _go_root in "$HOME/.local/go" /usr/local/go; do
+  [[ -x "$_go_root/bin/go" ]] && export PATH="$PATH:$_go_root/bin" && break
+done
+unset _go_root
 
 # set nvim as editor
 export EDITOR="nvim"
