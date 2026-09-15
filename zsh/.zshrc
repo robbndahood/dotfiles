@@ -73,7 +73,11 @@ export NVM_DIR="$HOME/.nvm"
 #   fpath=($HOME/.docker/completions $fpath)
 
 # pnpm
-export PNPM_HOME="$HOME/Library/pnpm"
+if [[ "$OSTYPE" == darwin* ]]; then
+  export PNPM_HOME="$HOME/Library/pnpm"
+else
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+fi
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -89,23 +93,50 @@ eval "$(uv generate-shell-completion zsh 2>/dev/null)"
 alias python='python3'
 
 kcode() {
-  open -na kitty --args \
-    --working-directory "$PWD" \
-    --session "$HOME/.config/kitty/sessions/code.session"
+  if [[ "$OSTYPE" == darwin* ]]; then
+    open -na kitty --args \
+      --working-directory "$PWD" \
+      --session "$HOME/.config/kitty/sessions/code.session"
+  else
+    kitty --detach \
+      --working-directory "$PWD" \
+      --session "$HOME/.config/kitty/sessions/code.session"
+  fi
 }
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 #
-# Set up fzf key bindings and fuzzy completion
-source <(fzf --zsh)
+# Set up fzf key bindings and fuzzy completion. `fzf --zsh` only exists from
+# fzf 0.48; Ubuntu 24.04 ships 0.44, which installs the scripts as files instead.
+if fzf --zsh >/dev/null 2>&1; then
+  source <(fzf --zsh)
+else
+  [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] &&
+    source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [[ -f /usr/share/doc/fzf/examples/completion.zsh ]] &&
+    source /usr/share/doc/fzf/examples/completion.zsh
+fi
 
 # zoxide
 eval "$(zoxide init zsh)"
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# zsh-syntax-highlighting must be sourced last, after every other ZLE plugin.
+# Path differs per platform: Homebrew on macOS, omz custom plugin or distro
+# package on Linux.
+for _zsh_hl in \
+  /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
+  "${ZSH_CUSTOM:-$ZSH/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+  /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+  [[ -f "$_zsh_hl" ]] && source "$_zsh_hl" && break
+done
+unset _zsh_hl
 
 # source secrets
 [[ -f ~/.config/zsh/secrets.zsh ]] && source ~/.config/zsh/secrets.zsh
 
 # 1password ssh
-export SSH_AUTH_SOCK="$HOME/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+if [[ "$OSTYPE" == darwin* ]]; then
+  export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+else
+  export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
+fi

@@ -13,4 +13,4 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.local/kitty.app/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
-. "$HOME/.cargo/env"
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
