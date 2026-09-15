@@ -1,9 +1,8 @@
--- Oceanic Next — loaded from the local fork while it's under active development.
--- TODO: once the Lua rewrite is pushed, switch `dir = ...` back to
---   "robbndahood/oceanic-next" (a normal remote plugin spec) so it installs like
---   any other plugin instead of pointing at this working copy.
+-- Oceanic Next — the Lua rewrite of the fork, installed like any other plugin.
+-- This used to be a `dir = ...` pointing at the local working copy, which hard
+-- coded a macOS home and left every other machine without a colorscheme.
 local M = {
-	dir = "/Users/robert.leon/code/repos/github.com/robbndahood/oceanic-next",
+	"robbndahood/oceanic-next",
 	name = "oceanic-next",
 	cond = function()
 		return not require("user.utils").is_vscode()
