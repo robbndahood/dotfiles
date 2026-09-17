@@ -216,6 +216,7 @@ link_configs() {
 
   link_file "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
   link_file "$DOTFILES_DIR/kitty" "$HOME/.config/kitty"
+  link_file "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
 
   # fontconfig is Linux-only; macOS resolves fonts through CoreText.
   if [ "$(uname -s)" = "Linux" ]; then
