@@ -20,3 +20,7 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.local/kitty.app/bin:$PATH"
 export PATH="$HOME/go/bin:$PATH"
 [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
+# Machine-local env that should not be in this repo (work paths, host names).
+# .zshenv rather than .zshrc so non-interactive shells get it too.
+[[ -f "$HOME/.config/zsh/local.zsh" ]] && source "$HOME/.config/zsh/local.zsh"
