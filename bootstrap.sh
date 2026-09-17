@@ -116,6 +116,53 @@ install_packages() {
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 }
 
+install_nerd_font_symbols() {
+  local version="v3.5.1"
+  local url="https://github.com/ryanoasis/nerd-fonts/releases/download/${version}/NerdFontsSymbolsOnly.tar.xz"
+  local font_dir
+  local tmp_dir
+
+  case "$(uname -s)" in
+  Darwin)
+    font_dir="$HOME/Library/Fonts"
+    ;;
+  Linux)
+    font_dir="$HOME/.local/share/fonts/NerdFonts"
+    ;;
+  *)
+    echo "Unsupported OS for font install: $(uname -s)" >&2
+    return 1
+    ;;
+  esac
+
+  if [ -f "$font_dir/SymbolsNerdFontMono-Regular.ttf" ]; then
+    log "Symbols Nerd Font already installed"
+  else
+    log "Installing Symbols Nerd Font ${version}"
+
+    tmp_dir="$(mktemp -d)"
+
+    curl -fsSL "$url" -o "$tmp_dir/symbols.tar.xz"
+    mkdir -p "$tmp_dir/extract" "$font_dir"
+    tar -xJf "$tmp_dir/symbols.tar.xz" -C "$tmp_dir/extract"
+
+    cp "$tmp_dir/extract/SymbolsNerdFontMono-Regular.ttf" \
+      "$tmp_dir/extract/SymbolsNerdFont-Regular.ttf" "$font_dir/"
+
+    rm -rf "$tmp_dir"
+
+    log "Symbols Nerd Font installed to $font_dir"
+  fi
+
+  # Always rebuild, even when the font was already there: -r discards the
+  # existing cache so the target="scan" rule in fontconfig/conf.d (which strips
+  # the Private Use Area from the CJK fonts) is reapplied after a config change.
+  if has fc-cache; then
+    log "Rebuilding font cache"
+    fc-cache -rf >/dev/null
+  fi
+}
+
 install_oh_my_zsh() {
   if [ -d "$HOME/.oh-my-zsh" ]; then
     log "Oh My Zsh already installed"
@@ -169,6 +216,11 @@ link_configs() {
 
   link_file "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
   link_file "$DOTFILES_DIR/kitty" "$HOME/.config/kitty"
+
+  # fontconfig is Linux-only; macOS resolves fonts through CoreText.
+  if [ "$(uname -s)" = "Linux" ]; then
+    link_file "$DOTFILES_DIR/fontconfig" "$HOME/.config/fontconfig"
+  fi
 }
 
 install_neovim_nightly() {
@@ -394,6 +446,8 @@ main() {
   install_oh_my_zsh
   install_powerlevel10k
   link_configs
+  # after link_configs so fontconfig/conf.d is in place when fc-cache runs
+  install_nerd_font_symbols
   set_default_shell
   verify_neovim
 
