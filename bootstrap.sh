@@ -224,15 +224,31 @@ link_configs() {
 }
 
 install_neovim_nightly() {
+  local os
   local arch
+  local dir_name
   local archive_name
   local url
   local install_dir="$HOME/.local/opt/nvim-nightly"
   local bin_dir="$HOME/.local/bin"
   local tmp_dir
 
+  case "$(uname -s)" in
+  Darwin)
+    os="macos"
+    ;;
+  Linux)
+    os="linux"
+    ;;
+  *)
+    echo "Unsupported OS for Neovim install: $(uname -s)" >&2
+    return 1
+    ;;
+  esac
+
+  # uname says aarch64 on Linux and arm64 on macOS; the release calls both arm64
   case "$(uname -m)" in
-  arm64)
+  arm64 | aarch64)
     arch="arm64"
     ;;
   x86_64)
@@ -244,23 +260,27 @@ install_neovim_nightly() {
     ;;
   esac
 
-  archive_name="nvim-macos-${arch}.tar.gz"
+  # the tarball unpacks to a directory named after the archive
+  dir_name="nvim-${os}-${arch}"
+  archive_name="${dir_name}.tar.gz"
   url="https://github.com/neovim/neovim/releases/download/nightly/${archive_name}"
 
   tmp_dir="$(mktemp -d)"
 
-  log "Installing Neovim nightly for macOS ${arch}"
+  log "Installing Neovim nightly for ${os} ${arch}"
 
   curl -fL "$url" -o "$tmp_dir/$archive_name"
 
   # Clear macOS quarantine / extended attributes when present.
-  xattr -c "$tmp_dir/$archive_name" 2>/dev/null || true
+  if has xattr; then
+    xattr -c "$tmp_dir/$archive_name" 2>/dev/null || true
+  fi
 
   tar -xzf "$tmp_dir/$archive_name" -C "$tmp_dir"
 
   rm -rf "$install_dir"
   mkdir -p "$(dirname "$install_dir")"
-  mv "$tmp_dir/nvim-macos-${arch}" "$install_dir"
+  mv "$tmp_dir/$dir_name" "$install_dir"
 
   mkdir -p "$bin_dir"
   ln -sfn "$install_dir/bin/nvim" "$bin_dir/nvim"
